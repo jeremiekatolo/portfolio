@@ -36,10 +36,15 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
 ]
 
-LOCAL_APPS: list[str] = []
+LOCAL_APPS: list[str] = [
+    "utilisateurs",
+]
 THIRD_PARTY_APPS: list[str] = []
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# --- Modèle Utilisateur personnalisé ---
+AUTH_USER_MODEL = "utilisateurs.Utilisateur"
 
 # --- Middleware ---
 MIDDLEWARE = [
