@@ -2,7 +2,7 @@
 Configuration de l'admin Django pour l'app utilisateurs.
 
 - Utilisateur : étend UserAdmin standard avec le champ `role`.
-- Profil      : ModelAdmin simple, organisé en sections.
+- Profil      : ModelAdmin organisé en sections, avec les 3 médias.
 """
 
 from django.contrib import admin
@@ -51,7 +51,7 @@ class ProfilAdmin(admin.ModelAdmin):
     list_filter = ("disponible",)
     search_fields = ("utilisateur__username", "nom_public", "titre_principal")
     readonly_fields = ("date_creation", "date_modification")
-    autocomplete_fields = ("utilisateur",)
+    autocomplete_fields = ("utilisateur", "photo", "cv", "seo_image_defaut")
 
     fieldsets = (
         ("Utilisateur", {"fields": ("utilisateur",)}),
@@ -71,10 +71,20 @@ class ProfilAdmin(admin.ModelAdmin):
             "Contact public",
             {"fields": ("email_public", "telephone_public", "localisation")},
         ),
+        (
+            "Médias publics",
+            {"fields": ("photo", "cv")},
+        ),
         ("Disponibilité", {"fields": ("disponible",)}),
         (
             "SEO par défaut",
-            {"fields": ("seo_titre_defaut", "seo_description_defaut")},
+            {
+                "fields": (
+                    "seo_titre_defaut",
+                    "seo_description_defaut",
+                    "seo_image_defaut",
+                )
+            },
         ),
         (
             "Horodatage",
