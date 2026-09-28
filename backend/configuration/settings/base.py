@@ -38,6 +38,7 @@ DJANGO_APPS = [
 
 LOCAL_APPS: list[str] = [
     "utilisateurs",
+    "medias",
 ]
 THIRD_PARTY_APPS: list[str] = []
 
