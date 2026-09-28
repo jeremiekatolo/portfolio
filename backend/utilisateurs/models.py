@@ -7,7 +7,7 @@ Deux modèles :
 
 Règles :
 - Aucun pourcentage, aucune donnée inventée.
-- Les champs photo/cv/seo_image seront ajoutés à l'étape 2.2 (media).
+- Les champs photo/cv/seo_image_defaut sont des FK vers medias.Media.
 """
 
 from django.contrib.auth.models import AbstractUser
@@ -91,6 +91,26 @@ class Profil(models.Model):
         max_length=100, blank=True, verbose_name="Localisation"
     )
 
+    # --- Médias publics ---
+    photo = models.ForeignKey(
+        "medias.Media",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="Photo de profil",
+        help_text="Image affichée sur la page d'accueil.",
+    )
+    cv = models.ForeignKey(
+        "medias.Media",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="CV (PDF)",
+        help_text="Fichier PDF téléchargeable.",
+    )
+
     # --- Disponibilité ---
     disponible = models.BooleanField(
         default=False, verbose_name="Disponible pour missions"
@@ -102,6 +122,15 @@ class Profil(models.Model):
     )
     seo_description_defaut = models.CharField(
         max_length=160, blank=True, verbose_name="Description SEO par défaut"
+    )
+    seo_image_defaut = models.ForeignKey(
+        "medias.Media",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="Image SEO par défaut",
+        help_text="Image Open Graph utilisée si un contenu n'a pas la sienne.",
     )
 
     # --- Horodatage ---
