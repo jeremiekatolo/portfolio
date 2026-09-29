@@ -32,6 +32,10 @@ urlpatterns = [
         "api/technologies/",
         include("technologies.urls", namespace="technologies"),
     ),
+    path(
+        "api/competences/",
+        include("competences.urls", namespace="competences"),
+    ),
 ]
 
 if settings.DEBUG:
