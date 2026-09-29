@@ -3,9 +3,6 @@ Admin Django pour l'app categories.
 
 - Prepopulated slug depuis `nom`.
 - Filtres par type, recherche par nom et slug.
-- Slug protégé après publication : géré par le modèle Contenu (Phase 2.6+).
-  Ici, la catégorie n'a pas d'état publié/dépublié, donc le slug reste
-  modifiable tant qu'aucun contenu publié ne l'utilise.
 """
 
 from django.contrib import admin
