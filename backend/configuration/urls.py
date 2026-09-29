@@ -4,6 +4,8 @@ URLconf racine du projet.
 - /admin/ : administration Django.
 - /api/utilisateurs/ : API utilisateurs.
 - /api/medias/ : API medias.
+- /api/categories/ : API categories.
+- /api/technologies/ : API technologies.
 - /api/ : à compléter app par app.
 """
 
@@ -25,6 +27,10 @@ urlpatterns = [
     path(
         "api/categories/",
         include("categories.urls", namespace="categories"),
+    ),
+    path(
+        "api/technologies/",
+        include("technologies.urls", namespace="technologies"),
     ),
 ]
 
