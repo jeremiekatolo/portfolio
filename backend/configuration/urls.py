@@ -22,6 +22,10 @@ urlpatterns = [
         "api/medias/",
         include("medias.urls", namespace="medias"),
     ),
+    path(
+        "api/categories/",
+        include("categories.urls", namespace="categories"),
+    ),
 ]
 
 if settings.DEBUG:
