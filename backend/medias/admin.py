@@ -1,13 +1,12 @@
 """
 Configuration de l'admin Django pour l'app medias.
 
-- Media       : liste avec type, taille, hash, orphelin.
-- MediaLien   : liaison polymorphe, utile pour audit.
-- LienExterne : liaison polymorphe, utile pour audit.
+- Media       : liste avec type, taille lisible, hash, orphelin.
+- MediaLien   : liaison polymorphe.
+- LienExterne : liaison polymorphe.
 
-Note : l'upload de nouveaux médias se fera idéalement via
-l'admin des contenus (Projet, Lab, Article, ...). L'admin
-medias sert principalement à la consultation et au nettoyage.
+MediaLienInline et LienExterneInline sont réutilisables dans
+les admin des apps contenus (projets, labos, articles, etc.).
 """
 
 from django.contrib import admin
@@ -65,7 +64,6 @@ class MediaAdmin(admin.ModelAdmin):
 
     @admin.display(description="Taille")
     def taille_affichee(self, obj: Media) -> str:
-        """Affiche la taille en Ko/Mo de façon lisible."""
         if not obj.taille:
             return "—"
         ko = obj.taille / 1024
@@ -75,7 +73,7 @@ class MediaAdmin(admin.ModelAdmin):
 
 
 class MediaLienInline(GenericTabularInline):
-    """Inline générique pour afficher les médias liés à un contenu."""
+    """Inline générique pour les médias liés à un contenu."""
 
     model = MediaLien
     extra = 0
@@ -87,7 +85,7 @@ class MediaLienInline(GenericTabularInline):
 
 
 class LienExterneInline(GenericTabularInline):
-    """Inline générique pour afficher les liens externes liés à un contenu."""
+    """Inline générique pour les liens externes liés à un contenu."""
 
     model = LienExterne
     extra = 0
