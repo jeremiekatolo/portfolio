@@ -2,8 +2,9 @@
 URLconf racine du projet.
 
 - /admin/ : administration Django.
-- /api/utilisateurs/ : API de l'app utilisateurs (ViewSets + /moi/).
-- /api/ : à compléter app par app au fur et à mesure.
+- /api/utilisateurs/ : API utilisateurs.
+- /api/medias/ : API medias.
+- /api/ : à compléter app par app.
 """
 
 from django.conf import settings
@@ -17,8 +18,11 @@ urlpatterns = [
         "api/utilisateurs/",
         include("utilisateurs.urls", namespace="utilisateurs"),
     ),
+    path(
+        "api/medias/",
+        include("medias.urls", namespace="medias"),
+    ),
 ]
 
-# En développement uniquement : servir les médias et les fichiers statiques.
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

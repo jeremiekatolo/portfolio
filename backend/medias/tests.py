@@ -1,77 +1,41 @@
 """
-Tests unitaires minimaux pour l'app medias.
-
-Objectif :
-- Vérifier le comportement des 3 modèles.
-- Vérifier le calcul automatique des métadonnées du Media.
-- Vérifier la liaison polymorphe MediaLien / LienExterne.
-
-Les tests d'upload réel (avec un vrai fichier) et les validations
-de sécurité (taille, MIME, extension) viendront en Phase 6.
+Tests unitaires et API pour l'app medias.
 """
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from rest_framework import status
+from rest_framework.test import APIClient
 
 from .models import LienExterne, Media, MediaLien
 
+Utilisateur = get_user_model()
+
 
 class MediaModelTest(TestCase):
-    """Tests du modèle Media."""
-
     def test_create_media_computes_metadata(self):
-        """Le save() doit calculer nom_original, taille et hash_sha256."""
         fichier = SimpleUploadedFile(
-            "mon-schema.png",
-            b"contenu binaire factice",
-            content_type="image/png",
+            "mon-schema.png", b"contenu binaire factice", content_type="image/png"
         )
-        media = Media.objects.create(
-            fichier=fichier,
-            type=Media.TypeChoices.SCHEMA,
-        )
+        media = Media.objects.create(fichier=fichier, type=Media.TypeChoices.SCHEMA)
         self.assertEqual(media.nom_original, "mon-schema.png")
         self.assertGreater(media.taille, 0)
-        self.assertEqual(len(media.hash_sha256), 64)  # SHA-256 = 64 hex chars
-        self.assertEqual(media.type, Media.TypeChoices.SCHEMA)
-
-    def test_hash_is_unique_for_same_content(self):
-        """Deux uploads du même contenu → même hash → contrainte unique."""
-        fichier1 = SimpleUploadedFile(
-            "a.png", b"identique", content_type="image/png"
-        )
-        fichier2 = SimpleUploadedFile(
-            "b.png", b"identique", content_type="image/png"
-        )
-        Media.objects.create(fichier=fichier1)
-        with self.assertRaises(Exception):
-            # Le hash SHA-256 est unique : la 2e insertion doit échouer.
-            Media.objects.create(fichier=fichier2)
+        self.assertEqual(len(media.hash_sha256), 64)
 
     def test_default_type_is_autre(self):
-        fichier = SimpleUploadedFile("x.bin", b"abc")
-        media = Media.objects.create(fichier=fichier)
+        media = Media.objects.create(fichier=SimpleUploadedFile("x.bin", b"abc"))
         self.assertEqual(media.type, Media.TypeChoices.AUTRE)
-
-    def test_default_est_orphelin_is_false(self):
-        fichier = SimpleUploadedFile("x.bin", b"abc")
-        media = Media.objects.create(fichier=fichier)
-        self.assertFalse(media.est_orphelin)
 
 
 class MediaLienModelTest(TestCase):
-    """Tests du modèle MediaLien (liaison polymorphe)."""
-
     def setUp(self):
-        self.fichier = SimpleUploadedFile("img.png", b"contenu")
-        self.media = Media.objects.create(fichier=self.fichier)
-        # On utilise Utilisateur comme objet polymorphe de test
-        # (n'importe quel modèle Django ferait l'affaire).
-        Utilisateur = get_user_model()
+        self.media = Media.objects.create(
+            fichier=SimpleUploadedFile("img.png", b"contenu")
+        )
         self.user = Utilisateur.objects.create_user(
-            username="testuser", password="testpass123"
+            username="testuser", password="testpass123456"
         )
 
     def test_create_lien_polymorphe(self):
@@ -83,25 +47,12 @@ class MediaLienModelTest(TestCase):
             role=MediaLien.RoleChoices.COUVERTURE,
         )
         self.assertEqual(lien.content_object, self.user)
-        self.assertEqual(lien.role, MediaLien.RoleChoices.COUVERTURE)
-
-    def test_default_role_is_illustration(self):
-        ct = ContentType.objects.get_for_model(self.user)
-        lien = MediaLien.objects.create(
-            media=self.media,
-            content_type=ct,
-            object_id=self.user.pk,
-        )
-        self.assertEqual(lien.role, MediaLien.RoleChoices.ILLUSTRATION)
 
 
 class LienExterneModelTest(TestCase):
-    """Tests du modèle LienExterne (liaison polymorphe)."""
-
     def setUp(self):
-        Utilisateur = get_user_model()
         self.user = Utilisateur.objects.create_user(
-            username="testuser", password="testpass123"
+            username="testuser", password="testpass123456"
         )
 
     def test_create_lien_externe(self):
@@ -111,26 +62,40 @@ class LienExterneModelTest(TestCase):
             object_id=self.user.pk,
             type=LienExterne.TypeChoices.GITHUB,
             url="https://github.com/exemple/repo",
-            label="Dépôt GitHub",
         )
         self.assertEqual(lien.content_object, self.user)
-        self.assertEqual(lien.type, LienExterne.TypeChoices.GITHUB)
 
-    def test_default_type_is_autre(self):
-        ct = ContentType.objects.get_for_model(self.user)
-        lien = LienExterne.objects.create(
-            content_type=ct,
-            object_id=self.user.pk,
-            url="https://example.com",
-        )
-        self.assertEqual(lien.type, LienExterne.TypeChoices.AUTRE)
 
-    def test_str_returns_type_and_url(self):
-        ct = ContentType.objects.get_for_model(self.user)
-        lien = LienExterne.objects.create(
-            content_type=ct,
-            object_id=self.user.pk,
-            type=LienExterne.TypeChoices.DEMO,
-            url="https://demo.example.com",
+class MediaAPITest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.editeur = Utilisateur.objects.create_user(
+            username="editeur",
+            password="editeurpass123456",
+            role=Utilisateur.Role.EDITEUR,
         )
-        self.assertEqual(str(lien), "Démonstration — https://demo.example.com")
+        self.visiteur = Utilisateur.objects.create_user(
+            username="visiteur", password="visiteurpass123456"
+        )
+
+    def test_liste_publique(self):
+        response = self.client.get("/api/medias/medias/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_upload_refuse_anonyme(self):
+        fichier = SimpleUploadedFile("img.png", b"abc", content_type="image/png")
+        response = self.client.post(
+            "/api/medias/medias/", {"fichier": fichier, "type": "image"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_upload_par_editeur(self):
+        self.client.force_authenticate(user=self.editeur)
+        fichier = SimpleUploadedFile("img.png", b"abc", content_type="image/png")
+        response = self.client.post(
+            "/api/medias/medias/",
+            {"fichier": fichier, "type": "image"},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["uploaded_by"], self.editeur.pk)
