@@ -1,39 +1,32 @@
 """
 ViewSets DRF pour l'app etudes_de_cas.
+
+Workflow de publication exposé via PublicationActionsMixin.
 """
 
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets
-from rest_framework.permissions import BasePermission
 
+from core.mixins import PublicationActionsMixin
+from core.permissions import EstEditeurOuAdmin
+
+from . import services
 from .models import EtudeDeCas
 from .serializers import EtudeDeCasEcritureSerializer, EtudeDeCasSerializer
 
 Utilisateur = get_user_model()
 
 
-class PeutEditerContenu(BasePermission):
-    """Écriture : editeur, administrateur ou superuser."""
+class EtudeDeCasViewSet(PublicationActionsMixin, viewsets.ModelViewSet):
+    """CRUD + workflow de publication sur les études de cas."""
 
-    def has_permission(self, request, view):
-        if request.method in ("GET", "HEAD", "OPTIONS"):
-            return True
-        user = request.user
-        if not user or not user.is_authenticated:
-            return False
-        if user.is_superuser:
-            return True
-        return user.role in (Utilisateur.Role.EDITEUR, Utilisateur.Role.ADMINISTRATEUR)
-
-
-class EtudeDeCasViewSet(viewsets.ModelViewSet):
-    """CRUD sur les études de cas."""
-
-    permission_classes = [PeutEditerContenu]
+    permission_classes = [EstEditeurOuAdmin]
     lookup_field = "slug"
     filterset_fields = ["statut"]
     search_fields = ["titre", "probleme", "contexte", "analyse"]
     ordering_fields = ["ordre", "date_creation"]
+
+    service_module = services
 
     def get_queryset(self):
         user = self.request.user
