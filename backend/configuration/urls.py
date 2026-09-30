@@ -20,6 +20,7 @@ urlpatterns = [
     path("api/articles/", include("articles.urls", namespace="articles")),
     path("api/parcours/", include("parcours.urls", namespace="parcours")),
     path("api/contacts/", include("contacts.urls", namespace="contacts")),
+    path("api/audits/", include("audits.urls", namespace="audits")),
 ]
 
 if settings.DEBUG:
