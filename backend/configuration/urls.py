@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/technologies/", include("technologies.urls", namespace="technologies")),
     path("api/competences/", include("competences.urls", namespace="competences")),
     path("api/projets/", include("projets.urls", namespace="projets")),
+    path("api/laboratoires/", include("laboratoires.urls", namespace="laboratoires")),
 ]
 
 if settings.DEBUG:
