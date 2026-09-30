@@ -137,3 +137,99 @@ class EtudeDeCasAPITest(TestCase):
         etude = EtudeDeCas.objects.get(slug="analyse-incident")
         self.assertEqual(etude.technologies.count(), 1)
         self.assertEqual(etude.competences.count(), 1)
+
+class EtudeDeCasWorkflowAPITest(TestCase):
+    """Tests des actions de workflow de publication."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = Utilisateur.objects.create_superuser(
+            username="admin", password="adminpass123456"
+        )
+        self.editeur = Utilisateur.objects.create_user(
+            username="editeur",
+            password="editeurpass123456",
+            role=Utilisateur.Role.EDITEUR,
+        )
+        self.etude = EtudeDeCas.objects.create(
+            titre="Workflow Test",
+            auteur=self.admin,
+            statut=EtudeDeCas.StatutChoices.BROUILLON,
+        )
+
+    def _url(self, action: str) -> str:
+        return f"/api/etudes-de-cas/etudes-de-cas/{self.etude.slug}/{action}/"
+
+    def test_soumettre_refuse_anonyme(self):
+        response = self.client.post(self._url("soumettre"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_soumettre_autorise_editeur(self):
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("soumettre"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.etude.refresh_from_db()
+        self.assertEqual(self.etude.statut, EtudeDeCas.StatutChoices.EN_REVISION)
+
+    def test_soumettre_refuse_si_deja_en_revision(self):
+        self.etude.statut = EtudeDeCas.StatutChoices.EN_REVISION
+        self.etude.save()
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("soumettre"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_valider_refuse_editeur(self):
+        self.etude.statut = EtudeDeCas.StatutChoices.EN_REVISION
+        self.etude.save()
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("valider"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_valider_autorise_admin(self):
+        self.etude.statut = EtudeDeCas.StatutChoices.EN_REVISION
+        self.etude.save()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("valider"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.etude.refresh_from_db()
+        self.assertEqual(self.etude.statut, EtudeDeCas.StatutChoices.VALIDE)
+
+    def test_publier_autorise_admin_depuis_brouillon(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("publier"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.etude.refresh_from_db()
+        self.assertEqual(self.etude.statut, EtudeDeCas.StatutChoices.PUBLIE)
+
+    def test_publier_refuse_editeur(self):
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("publier"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_depublier_autorise_admin(self):
+        self.etude.statut = EtudeDeCas.StatutChoices.PUBLIE
+        self.etude.save()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("depublier"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.etude.refresh_from_db()
+        self.assertEqual(self.etude.statut, EtudeDeCas.StatutChoices.BROUILLON)
+
+    def test_depublier_refuse_si_pas_publie(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("depublier"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_archiver_autorise_admin_depuis_publie(self):
+        self.etude.statut = EtudeDeCas.StatutChoices.PUBLIE
+        self.etude.save()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("archiver"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.etude.refresh_from_db()
+        self.assertEqual(self.etude.statut, EtudeDeCas.StatutChoices.ARCHIVE)
+
+    def test_archiver_refuse_depuis_brouillon(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("archiver"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
