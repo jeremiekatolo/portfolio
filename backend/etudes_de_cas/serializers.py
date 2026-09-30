@@ -1,0 +1,178 @@
+"""
+Serializers DRF pour l'app etudes_de_cas.
+"""
+
+from rest_framework import serializers
+
+from competences.models import Competence
+from medias.models import Media
+from technologies.models import Technologie
+from utilisateurs.models import Utilisateur
+
+from .models import EtudeDeCas
+
+
+class MediaInlineSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    fichier = serializers.FileField(read_only=True)
+    alt_text = serializers.CharField(read_only=True)
+
+
+class TechnologieInlineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Technologie
+        fields = ("id", "nom", "categorie_tech")
+
+
+class CompetenceInlineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Competence
+        fields = ("id", "nom", "domaine")
+
+
+class EtudeDeCasSerializer(serializers.ModelSerializer):
+    """Serializer de lecture."""
+
+    technologies = TechnologieInlineSerializer(many=True, read_only=True)
+    competences = CompetenceInlineSerializer(many=True, read_only=True)
+    auteur_username = serializers.CharField(
+        source="auteur.username", read_only=True
+    )
+    statut_display = serializers.CharField(
+        source="get_statut_display", read_only=True
+    )
+    seo_image = MediaInlineSerializer(read_only=True)
+    est_public = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = EtudeDeCas
+        fields = (
+            "id",
+            "titre",
+            "slug",
+            "probleme",
+            "contexte",
+            "analyse",
+            "exigences",
+            "menaces",
+            "architecture_texte",
+            "choix_techniques",
+            "implementation",
+            "securisation",
+            "tests",
+            "resultats",
+            "limites",
+            "recommandations",
+            "statut",
+            "statut_display",
+            "publish_at",
+            "unpublish_at",
+            "technologies",
+            "competences",
+            "ordre",
+            "seo_titre",
+            "seo_description",
+            "seo_image",
+            "auteur_username",
+            "date_creation",
+            "date_modification",
+            "est_public",
+        )
+        read_only_fields = fields
+
+
+class EtudeDeCasEcritureSerializer(serializers.ModelSerializer):
+    """Serializer d'écriture."""
+
+    technologies_ids = serializers.PrimaryKeyRelatedField(
+        source="technologies",
+        queryset=Technologie.objects.all(),
+        many=True,
+        required=False,
+    )
+    competences_ids = serializers.PrimaryKeyRelatedField(
+        source="competences",
+        queryset=Competence.objects.all(),
+        many=True,
+        required=False,
+    )
+    seo_image_id = serializers.PrimaryKeyRelatedField(
+        source="seo_image",
+        queryset=Media.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    auteur_id = serializers.PrimaryKeyRelatedField(
+        source="auteur",
+        queryset=Utilisateur.objects.all(),
+        required=False,
+    )
+
+    class Meta:
+        model = EtudeDeCas
+        fields = (
+            "id",
+            "titre",
+            "slug",
+            "probleme",
+            "contexte",
+            "analyse",
+            "exigences",
+            "menaces",
+            "architecture_texte",
+            "choix_techniques",
+            "implementation",
+            "securisation",
+            "tests",
+            "resultats",
+            "limites",
+            "recommandations",
+            "statut",
+            "publish_at",
+            "unpublish_at",
+            "technologies_ids",
+            "competences_ids",
+            "ordre",
+            "seo_titre",
+            "seo_description",
+            "seo_image_id",
+            "auteur_id",
+        )
+        read_only_fields = ("id",)
+
+    def validate(self, attrs):
+        slug = attrs.get("slug")
+        if slug:
+            qs = EtudeDeCas.objects.filter(slug=slug)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    {"slug": "Ce slug est déjà utilisé par une autre étude de cas."}
+                )
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user and request.user.is_authenticated:
+            validated_data.setdefault("auteur", request.user)
+        technologies = validated_data.pop("technologies", [])
+        competences = validated_data.pop("competences", [])
+        instance = EtudeDeCas.objects.create(**validated_data)
+        if technologies:
+            instance.technologies.set(technologies)
+        if competences:
+            instance.competences.set(competences)
+        return instance
+
+    def update(self, instance, validated_data):
+        technologies = validated_data.pop("technologies", None)
+        competences = validated_data.pop("competences", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if technologies is not None:
+            instance.technologies.set(technologies)
+        if competences is not None:
+            instance.competences.set(competences)
+        return instance
