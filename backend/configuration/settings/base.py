@@ -41,7 +41,10 @@ LOCAL_APPS: list[str] = [
     "medias",
     "categories",
     "technologies",
-    "competences"
+    "competences",
+    "laboratoires",
+    "etudes_de_cas",
+    "projets",
 ]
 THIRD_PARTY_APPS: list[str] = [
 
