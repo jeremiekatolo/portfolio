@@ -46,6 +46,7 @@ LOCAL_APPS: list[str] = [
     "etudes_de_cas",
     "projets",
     "articles",
+    "parcours",
 ]
 THIRD_PARTY_APPS: list[str] = [
 
