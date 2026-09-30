@@ -165,3 +165,128 @@ class ProjetAPITest(TestCase):
         projet = Projet.objects.get(slug="nouveau-projet")
         self.assertEqual(projet.technologies.count(), 1)
         self.assertEqual(projet.competences.count(), 1)
+
+class ProjetWorkflowAPITest(TestCase):
+    """Tests des actions de workflow de publication."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = Utilisateur.objects.create_superuser(
+            username="admin", password="adminpass123456"
+        )
+        self.editeur = Utilisateur.objects.create_user(
+            username="editeur",
+            password="editeurpass123456",
+            role=Utilisateur.Role.EDITEUR,
+        )
+        self.visiteur = Utilisateur.objects.create_user(
+            username="visiteur", password="visiteurpass123456"
+        )
+        self.cat = Categorie.objects.create(
+            nom="Réseau", type=Categorie.TypeChoices.PROJET
+        )
+        self.projet = Projet.objects.create(
+            titre="Workflow Test",
+            categorie=self.cat,
+            auteur=self.admin,
+            statut=Projet.StatutChoices.BROUILLON,
+        )
+
+    def _url(self, action: str) -> str:
+        return f"/api/projets/projets/{self.projet.slug}/{action}/"
+
+    # --- Soumettre ---
+
+    def test_soumettre_refuse_anonyme(self):
+        response = self.client.post(self._url("soumettre"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_soumettre_refuse_visiteur(self):
+        self.client.force_authenticate(user=self.visiteur)
+        response = self.client.post(self._url("soumettre"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_soumettre_autorise_editeur(self):
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("soumettre"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.projet.refresh_from_db()
+        self.assertEqual(self.projet.statut, Projet.StatutChoices.EN_REVISION)
+
+    def test_soumettre_refuse_si_deja_en_revision(self):
+        self.projet.statut = Projet.StatutChoices.EN_REVISION
+        self.projet.save()
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("soumettre"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # --- Valider ---
+
+    def test_valider_refuse_editeur(self):
+        self.projet.statut = Projet.StatutChoices.EN_REVISION
+        self.projet.save()
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("valider"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_valider_autorise_admin(self):
+        self.projet.statut = Projet.StatutChoices.EN_REVISION
+        self.projet.save()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("valider"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.projet.refresh_from_db()
+        self.assertEqual(self.projet.statut, Projet.StatutChoices.VALIDE)
+
+    # --- Publier ---
+
+    def test_publier_refuse_editeur(self):
+        self.client.force_authenticate(user=self.editeur)
+        response = self.client.post(self._url("publier"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_publier_autorise_admin_depuis_brouillon(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("publier"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.projet.refresh_from_db()
+        self.assertEqual(self.projet.statut, Projet.StatutChoices.PUBLIE)
+
+    def test_publier_refuse_si_deja_publie(self):
+        self.projet.statut = Projet.StatutChoices.PUBLIE
+        self.projet.save()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("publier"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # --- Dépublier ---
+
+    def test_depublier_autorise_admin(self):
+        self.projet.statut = Projet.StatutChoices.PUBLIE
+        self.projet.save()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("depublier"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.projet.refresh_from_db()
+        self.assertEqual(self.projet.statut, Projet.StatutChoices.BROUILLON)
+
+    def test_depublier_refuse_si_pas_publie(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("depublier"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # --- Archiver ---
+
+    def test_archiver_autorise_admin_depuis_publie(self):
+        self.projet.statut = Projet.StatutChoices.PUBLIE
+        self.projet.save()
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("archiver"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.projet.refresh_from_db()
+        self.assertEqual(self.projet.statut, Projet.StatutChoices.ARCHIVE)
+
+    def test_archiver_refuse_depuis_brouillon(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(self._url("archiver"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)       
