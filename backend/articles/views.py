@@ -1,39 +1,32 @@
 """
 ViewSets DRF pour l'app articles.
+
+Workflow de publication exposé via PublicationActionsMixin.
 """
 
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets
-from rest_framework.permissions import BasePermission
 
+from core.mixins import PublicationActionsMixin
+from core.permissions import EstEditeurOuAdmin
+
+from . import services
 from .models import Article
 from .serializers import ArticleEcritureSerializer, ArticleSerializer
 
 Utilisateur = get_user_model()
 
 
-class PeutEditerContenu(BasePermission):
-    """Écriture : editeur, administrateur ou superuser."""
+class ArticleViewSet(PublicationActionsMixin, viewsets.ModelViewSet):
+    """CRUD + workflow de publication sur les articles."""
 
-    def has_permission(self, request, view):
-        if request.method in ("GET", "HEAD", "OPTIONS"):
-            return True
-        user = request.user
-        if not user or not user.is_authenticated:
-            return False
-        if user.is_superuser:
-            return True
-        return user.role in (Utilisateur.Role.EDITEUR, Utilisateur.Role.ADMINISTRATEUR)
-
-
-class ArticleViewSet(viewsets.ModelViewSet):
-    """CRUD sur les articles."""
-
-    permission_classes = [PeutEditerContenu]
+    permission_classes = [EstEditeurOuAdmin]
     lookup_field = "slug"
     filterset_fields = ["categorie", "statut"]
     search_fields = ["titre", "resume", "contenu"]
     ordering_fields = ["ordre", "date_creation", "temps_lecture"]
+
+    service_module = services
 
     def get_queryset(self):
         user = self.request.user
