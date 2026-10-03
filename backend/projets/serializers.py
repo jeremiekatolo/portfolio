@@ -1,19 +1,20 @@
 """
 Serializers DRF pour l'app projets.
 
-- ProjetSerializer     : lecture complète (categorie, technologies, competences).
-- ProjetEcritureSerializer : écriture (categorie_id, technologies_ids, competences_ids).
-
-La visibilité publique est contrôlée côté viewset via Projet.objects.publies().
+- ProjetSerializer     : lecture complète (categorie, technologies,
+                         competences, liens_externes).
+- ProjetEcritureSerializer : écriture (categorie_id, technologies_ids,
+                             competences_ids).
 """
 
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
 from categories.models import Categorie
 from competences.models import Competence
 from etudes_de_cas.models import EtudeDeCas
 from laboratoires.models import Laboratoire
-from medias.models import Media
+from medias.models import LienExterne, Media
 from technologies.models import Technologie
 from utilisateurs.models import Utilisateur
 
@@ -44,6 +45,19 @@ class CompetenceInlineSerializer(serializers.ModelSerializer):
         fields = ("id", "nom", "domaine")
 
 
+class LienExterneInlineSerializer(serializers.ModelSerializer):
+    """Lien externe lié à un contenu (GitHub, démo, documentation…)."""
+
+    type_display = serializers.CharField(
+        source="get_type_display", read_only=True
+    )
+
+    class Meta:
+        model = LienExterne
+        fields = ("id", "type", "type_display", "url", "label", "ordre")
+        read_only_fields = fields
+
+
 class ProjetSerializer(serializers.ModelSerializer):
     """Serializer de lecture d'un projet."""
 
@@ -56,6 +70,7 @@ class ProjetSerializer(serializers.ModelSerializer):
     )
     technologies = TechnologieInlineSerializer(many=True, read_only=True)
     competences = CompetenceInlineSerializer(many=True, read_only=True)
+    liens_externes = serializers.SerializerMethodField()
     auteur_username = serializers.CharField(
         source="auteur.username", read_only=True
     )
@@ -97,6 +112,7 @@ class ProjetSerializer(serializers.ModelSerializer):
             "etude_de_cas_titre",
             "technologies",
             "competences",
+            "liens_externes",
             "mis_en_avant",
             "ordre",
             "seo_titre",
@@ -108,6 +124,18 @@ class ProjetSerializer(serializers.ModelSerializer):
             "est_public",
         )
         read_only_fields = fields
+
+    def get_liens_externes(self, obj):
+        """
+        Retourne les liens externes liés à ce projet via ContentType.
+
+        Les liens sont triés par `ordre`, puis par `id`.
+        """
+        content_type = ContentType.objects.get_for_model(obj)
+        liens = LienExterne.objects.filter(
+            content_type=content_type, object_id=obj.pk
+        ).order_by("ordre", "id")
+        return LienExterneInlineSerializer(liens, many=True).data
 
 
 class ProjetEcritureSerializer(serializers.ModelSerializer):
@@ -190,7 +218,6 @@ class ProjetEcritureSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
     def validate(self, attrs):
-        """Vérifie l'unicité du slug si fourni."""
         slug = attrs.get("slug")
         if slug:
             qs = Projet.objects.filter(slug=slug)
@@ -203,7 +230,6 @@ class ProjetEcritureSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Associe l'auteur connecté si non fourni."""
         request = self.context.get("request")
         if request and request.user and request.user.is_authenticated:
             validated_data.setdefault("auteur", request.user)
