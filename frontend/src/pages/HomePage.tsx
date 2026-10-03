@@ -1,10 +1,19 @@
-import { PagePlaceholder } from '@/components/ui/PagePlaceholder'
+import { Hero } from '@/components/home/Hero'
+import { Domaines } from '@/components/home/Domaines'
+import { ProjetsRecents } from '@/components/home/ProjetsRecents'
+import { CompetencesCles } from '@/components/home/CompetencesCles'
+import { ArticlesRecents } from '@/components/home/ArticlesRecents'
+import { ContactCTA } from '@/components/home/ContactCTA'
 
 export function HomePage() {
   return (
-    <PagePlaceholder
-      title="Accueil"
-      description="La page d'accueil réelle sera construite à l'Étape 4.9 : hero, domaines, projets récents, compétences clés."
-    />
+    <>
+      <Hero />
+      <Domaines />
+      <ProjetsRecents />
+      <CompetencesCles />
+      <ArticlesRecents />
+      <ContactCTA />
+    </>
   )
 }
