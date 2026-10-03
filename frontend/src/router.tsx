@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { MainLayout } from '@/layouts/MainLayout'
 import { HomePage } from '@/pages/HomePage'
 import { ProjetsPage } from '@/pages/ProjetsPage'
+import { ProjetDetailPage } from '@/pages/ProjetDetailPage'
 import { LabsPage } from '@/pages/LabsPage'
 import { EtudesPage } from '@/pages/EtudesPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'projets', element: <ProjetsPage /> },
+      { path: 'projets/:slug', element: <ProjetDetailPage /> },
       { path: 'labs', element: <LabsPage /> },
       { path: 'etudes-de-cas', element: <EtudesPage /> },
       { path: 'articles', element: <ArticlesPage /> },
