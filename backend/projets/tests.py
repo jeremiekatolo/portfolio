@@ -14,6 +14,9 @@ from competences.models import Competence
 from technologies.models import Technologie
 from utilisateurs.models import Utilisateur
 
+from django.contrib.contenttypes.models import ContentType
+from medias.models import LienExterne
+
 from .models import Projet
 
 
@@ -290,3 +293,64 @@ class ProjetWorkflowAPITest(TestCase):
         self.client.force_authenticate(user=self.admin)
         response = self.client.post(self._url("archiver"))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)       
+
+class ProjetLiensExternesAPITest(TestCase):
+    """Vérifie que les liens externes sont exposés par l'API."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = Utilisateur.objects.create_superuser(
+            username="admin", password="adminpass123456"
+        )
+        self.cat = Categorie.objects.create(
+            nom="Réseau", type=Categorie.TypeChoices.PROJET
+        )
+        self.projet = Projet.objects.create(
+            titre="Avec liens",
+            categorie=self.cat,
+            auteur=self.admin,
+            statut=Projet.StatutChoices.PUBLIE,
+        )
+        # Crée 2 liens externes liés au projet
+        ct = ContentType.objects.get_for_model(self.projet)
+        LienExterne.objects.create(
+            content_type=ct,
+            object_id=self.projet.pk,
+            type=LienExterne.TypeChoices.GITHUB,
+            url="https://github.com/exemple/repo",
+            label="Code source",
+            ordre=1,
+        )
+        LienExterne.objects.create(
+            content_type=ct,
+            object_id=self.projet.pk,
+            type=LienExterne.TypeChoices.DEMO,
+            url="https://demo.exemple.com",
+            label="Démo en ligne",
+            ordre=2,
+        )
+
+    def test_liens_externes_exposes(self):
+        response = self.client.get(
+            f"/api/projets/projets/{self.projet.slug}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        liens = response.data["liens_externes"]
+        self.assertEqual(len(liens), 2)
+        self.assertEqual(liens[0]["type"], "github")
+        self.assertEqual(liens[0]["url"], "https://github.com/exemple/repo")
+        self.assertEqual(liens[0]["type_display"], "GitHub")
+        self.assertEqual(liens[1]["type"], "demo")
+
+    def test_projet_sans_liens(self):
+        projet2 = Projet.objects.create(
+            titre="Sans liens",
+            categorie=self.cat,
+            auteur=self.admin,
+            statut=Projet.StatutChoices.PUBLIE,
+        )
+        response = self.client.get(
+            f"/api/projets/projets/{projet2.slug}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["liens_externes"], [])
