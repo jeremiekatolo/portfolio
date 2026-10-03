@@ -10,6 +10,23 @@ import type { TechnologieInline } from './technologies'
 export type Statut = 'brouillon' | 'en_revision' | 'valide' | 'publie' | 'archive'
 export type Difficulte = 'debutant' | 'intermediaire' | 'avance' | 'expert'
 
+export type TypeLienExterne =
+  | 'github'
+  | 'demo'
+  | 'documentation'
+  | 'video'
+  | 'article'
+  | 'autre'
+
+export interface LienExterneInline {
+  id: number
+  type: TypeLienExterne
+  type_display: string
+  url: string
+  label: string
+  ordre: number
+}
+
 export interface Projet {
   id: number
   titre: string
@@ -37,6 +54,7 @@ export interface Projet {
   etude_de_cas_titre: string | null
   technologies: TechnologieInline[]
   competences: CompetenceInline[]
+  liens_externes: LienExterneInline[]
   mis_en_avant: boolean
   ordre: number
   seo_titre: string

@@ -1,14 +1,39 @@
-import { ExternalLink } from 'lucide-react'
+import {
+  BookOpen,
+  Code2,
+  ExternalLink,
+  FileText,
+  Video,
+} from 'lucide-react'
+import type { ComponentType } from 'react'
 
 import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
-import type { Projet } from '@/types'
+import type { Projet, TypeLienExterne } from '@/types'
 
 interface ProjetSidebarProps {
   projet: Projet
 }
 
+/**
+ * Icônes par type de lien externe.
+ * Fallback : ExternalLink si le type n'est pas reconnu.
+ *
+ * Note : Lucide React a retiré les icônes de marques (Github, Twitter…).
+ * On utilise Code2 pour représenter un dépôt de code.
+ */
+const ICONES_LIEN: Record<TypeLienExterne, ComponentType<{ size?: number }>> = {
+  github: Code2,
+  demo: ExternalLink,
+  documentation: BookOpen,
+  video: Video,
+  article: FileText,
+  autre: ExternalLink,
+}
+
 export function ProjetSidebar({ projet }: ProjetSidebarProps) {
+  const aDesLiens = projet.liens_externes.length > 0
+
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
       {/* Image SEO */}
@@ -19,6 +44,39 @@ export function ProjetSidebar({ projet }: ProjetSidebarProps) {
             alt={projet.seo_image.alt_text || projet.titre}
             className="w-full h-auto"
           />
+        </Card>
+      )}
+
+      {/* Liens externes (GitHub, démo, doc, vidéo) */}
+      {aDesLiens && (
+        <Card className="p-5">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+            Ressources
+          </h3>
+          <ul className="mt-3 space-y-2">
+            {projet.liens_externes.map((lien) => {
+              const Icone = ICONES_LIEN[lien.type] ?? ExternalLink
+              return (
+                <li key={lien.id}>
+                  <a
+                    href={lien.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 transition-colors"
+                  >
+                    <Icone size={16} />
+                    <span className="flex-1 group-hover:underline">
+                      {lien.label || lien.type_display}
+                    </span>
+                    <ExternalLink
+                      size={12}
+                      className="text-slate-400 dark:text-slate-600"
+                    />
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
         </Card>
       )}
 
@@ -82,21 +140,6 @@ export function ProjetSidebar({ projet }: ProjetSidebarProps) {
             </dd>
           </div>
         </dl>
-      </Card>
-
-      {/* Lien GitHub (placeholder si présent dans le futur) */}
-      <Card className="p-5">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
-          Ressources
-        </h3>
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-500">
-          Les liens GitHub, démos et documentation seront affichés ici
-          dès qu'ils seront renseignés.
-        </p>
-        <div className="mt-3 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-600">
-          <ExternalLink size={12} />
-          <span>À venir</span>
-        </div>
       </Card>
     </aside>
   )
