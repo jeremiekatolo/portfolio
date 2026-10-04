@@ -2,6 +2,9 @@
 Serializers DRF pour l'app laboratoires.
 """
 
+from medias.serializers import LienExterneInlineSerializer
+from medias.utils import liens_pour
+
 from rest_framework import serializers
 
 from competences.models import Competence
@@ -46,6 +49,7 @@ class LaboratoireSerializer(serializers.ModelSerializer):
     )
     seo_image = MediaInlineSerializer(read_only=True)
     est_public = serializers.BooleanField(read_only=True)
+    liens_externes = serializers.SerializerMethodField()
 
     class Meta:
         model = Laboratoire
@@ -75,6 +79,7 @@ class LaboratoireSerializer(serializers.ModelSerializer):
             "unpublish_at",
             "technologies",
             "competences",
+            "liens_externes",
             "ordre",
             "seo_titre",
             "seo_description",
@@ -85,6 +90,10 @@ class LaboratoireSerializer(serializers.ModelSerializer):
             "est_public",
         )
         read_only_fields = fields
+
+    def get_liens_externes(self, obj):
+        liens = liens_pour(obj)
+        return LienExterneInlineSerializer(liens, many=True).data
 
 
 class LaboratoireEcritureSerializer(serializers.ModelSerializer):
