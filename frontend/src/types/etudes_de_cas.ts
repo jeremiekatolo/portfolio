@@ -6,6 +6,7 @@ import type { CompetenceInline } from './competences'
 import type { Statut } from './projets'
 import type { TechnologieInline } from './technologies'
 import type { MediaInline } from './utilisateurs'
+import type { LienExterneInline } from './projets'
 
 export interface EtudeDeCas {
   id: number
@@ -38,4 +39,5 @@ export interface EtudeDeCas {
   date_creation: string
   date_modification: string
   est_public: boolean
+  liens_externes: LienExterneInline[]
 }
