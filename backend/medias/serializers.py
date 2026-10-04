@@ -111,3 +111,22 @@ class LienExterneSerializer(serializers.ModelSerializer):
             "label",
             "ordre",
         )
+
+
+
+
+class LienExterneInlineSerializer(serializers.ModelSerializer):
+    """
+    Serializer en lecture seule pour un LienExterne.
+    Utilisé pour l'embarquement dans les serializers de contenus
+    (Projet, Laboratoire, EtudeDeCas, Article).
+    """
+
+    type_display = serializers.CharField(
+        source="get_type_display", read_only=True
+    )
+
+    class Meta:
+        model = LienExterne
+        fields = ("id", "type", "type_display", "url", "label", "ordre")
+        read_only_fields = fields

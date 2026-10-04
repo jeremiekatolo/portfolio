@@ -1,6 +1,8 @@
 """
 Serializers DRF pour l'app articles.
 """
+from medias.serializers import LienExterneInlineSerializer
+from medias.utils import liens_pour
 
 from rest_framework import serializers
 
@@ -51,7 +53,7 @@ class ArticleSerializer(serializers.ModelSerializer):
     )
     seo_image = MediaInlineSerializer(read_only=True)
     est_public = serializers.BooleanField(read_only=True)
-
+    liens_externes = serializers.SerializerMethodField()
     class Meta:
         model = Article
         fields = (
@@ -76,8 +78,12 @@ class ArticleSerializer(serializers.ModelSerializer):
             "date_creation",
             "date_modification",
             "est_public",
+            "liens_externes",
         )
         read_only_fields = fields
+    def get_liens_externes(self, obj):
+        liens = liens_pour(obj)
+        return LienExterneInlineSerializer(liens, many=True).data
 
 
 class ArticleEcritureSerializer(serializers.ModelSerializer):

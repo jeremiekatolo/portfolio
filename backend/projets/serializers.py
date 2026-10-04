@@ -7,14 +7,16 @@ Serializers DRF pour l'app projets.
                              competences_ids).
 """
 
-from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.models import ContentType  # noqa: F401
 from rest_framework import serializers
 
 from categories.models import Categorie
 from competences.models import Competence
 from etudes_de_cas.models import EtudeDeCas
 from laboratoires.models import Laboratoire
-from medias.models import LienExterne, Media
+from medias.models import LienExterne, Media  # noqa: F401
+from medias.serializers import LienExterneInlineSerializer
+from medias.utils import liens_pour
 from technologies.models import Technologie
 from utilisateurs.models import Utilisateur
 
@@ -43,19 +45,6 @@ class CompetenceInlineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competence
         fields = ("id", "nom", "domaine")
-
-
-class LienExterneInlineSerializer(serializers.ModelSerializer):
-    """Lien externe lié à un contenu (GitHub, démo, documentation…)."""
-
-    type_display = serializers.CharField(
-        source="get_type_display", read_only=True
-    )
-
-    class Meta:
-        model = LienExterne
-        fields = ("id", "type", "type_display", "url", "label", "ordre")
-        read_only_fields = fields
 
 
 class ProjetSerializer(serializers.ModelSerializer):
@@ -126,15 +115,7 @@ class ProjetSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_liens_externes(self, obj):
-        """
-        Retourne les liens externes liés à ce projet via ContentType.
-
-        Les liens sont triés par `ordre`, puis par `id`.
-        """
-        content_type = ContentType.objects.get_for_model(obj)
-        liens = LienExterne.objects.filter(
-            content_type=content_type, object_id=obj.pk
-        ).order_by("ordre", "id")
+        liens = liens_pour(obj)
         return LienExterneInlineSerializer(liens, many=True).data
 
 

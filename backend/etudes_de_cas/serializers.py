@@ -1,6 +1,8 @@
 """
 Serializers DRF pour l'app etudes_de_cas.
 """
+from medias.serializers import LienExterneInlineSerializer
+from medias.utils import liens_pour
 
 from rest_framework import serializers
 
@@ -43,6 +45,7 @@ class EtudeDeCasSerializer(serializers.ModelSerializer):
     )
     seo_image = MediaInlineSerializer(read_only=True)
     est_public = serializers.BooleanField(read_only=True)
+    liens_externes = serializers.SerializerMethodField()
 
     class Meta:
         model = EtudeDeCas
@@ -77,8 +80,13 @@ class EtudeDeCasSerializer(serializers.ModelSerializer):
             "date_creation",
             "date_modification",
             "est_public",
+            "liens_externes",
         )
         read_only_fields = fields
+
+    def get_liens_externes(self, obj):
+        liens = liens_pour(obj)
+        return LienExterneInlineSerializer(liens, many=True).data
 
 
 class EtudeDeCasEcritureSerializer(serializers.ModelSerializer):
