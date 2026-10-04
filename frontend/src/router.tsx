@@ -5,6 +5,7 @@ import { HomePage } from '@/pages/HomePage'
 import { ProjetsPage } from '@/pages/ProjetsPage'
 import { ProjetDetailPage } from '@/pages/ProjetDetailPage'
 import { LabsPage } from '@/pages/LabsPage'
+import { LabDetailPage } from '@/pages/LabDetailPage'
 import { EtudesPage } from '@/pages/EtudesPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
 import { ParcoursPage } from '@/pages/ParcoursPage'
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: 'projets', element: <ProjetsPage /> },
       { path: 'projets/:slug', element: <ProjetDetailPage /> },
       { path: 'labs', element: <LabsPage /> },
+      { path: 'labs/:slug', element: <LabDetailPage /> },
       { path: 'etudes-de-cas', element: <EtudesPage /> },
       { path: 'articles', element: <ArticlesPage /> },
       { path: 'parcours', element: <ParcoursPage /> },
