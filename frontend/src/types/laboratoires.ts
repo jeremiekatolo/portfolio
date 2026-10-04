@@ -6,6 +6,7 @@ import type { CompetenceInline } from './competences'
 import type { TechnologieInline } from './technologies'
 import type { Difficulte, Statut } from './projets'
 import type { MediaInline } from './utilisateurs'
+import type { LienExterneInline } from './projets'
 
 export interface Laboratoire {
   id: number
@@ -41,4 +42,5 @@ export interface Laboratoire {
   date_creation: string
   date_modification: string
   est_public: boolean
+  liens_externes: LienExterneInline[]
 }
