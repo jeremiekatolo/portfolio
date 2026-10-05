@@ -9,6 +9,7 @@ import { LabDetailPage } from '@/pages/LabDetailPage'
 import { EtudesPage } from '@/pages/EtudesPage'
 import { EtudeDetailPage } from '@/pages/EtudeDetailPage'
 import { ArticlesPage } from '@/pages/ArticlesPage'
+import { ArticleDetailPage } from '@/pages/ArticleDetailPage'
 import { ParcoursPage } from '@/pages/ParcoursPage'
 import { AProposPage } from '@/pages/AProposPage'
 import { ContactPage } from '@/pages/ContactPage'
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: 'etudes-de-cas', element: <EtudesPage /> },
       { path: 'etudes-de-cas/:slug', element: <EtudeDetailPage /> },
       { path: 'articles', element: <ArticlesPage /> },
+      { path: 'articles/:slug', element: <ArticleDetailPage /> },
       { path: 'parcours', element: <ParcoursPage /> },
       { path: 'a-propos', element: <AProposPage /> },
       { path: 'contact', element: <ContactPage /> },
