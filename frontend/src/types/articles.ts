@@ -7,6 +7,8 @@ import type { CompetenceInline } from './competences'
 import type { Statut } from './projets'
 import type { TechnologieInline } from './technologies'
 import type { MediaInline } from './utilisateurs'
+import type { LienExterneInline } from './projets'
+
 
 export interface Article {
   id: number
@@ -30,4 +32,5 @@ export interface Article {
   date_creation: string
   date_modification: string
   est_public: boolean
+  liens_externes: LienExterneInline[]
 }
